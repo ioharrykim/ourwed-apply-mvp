@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo",
+    "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", sans-serif;
+  --color-ourwed-main: #1d1000;
+  --color-ourwed-sub: #f7f6f5;
+  --color-ourwed-bg: #fcfbf9;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-ourwed-bg);
+  color: var(--color-ourwed-main);
+  letter-spacing: -0.02em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar for a cleaner look */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e5e5e5;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d4d4d4;
+}
