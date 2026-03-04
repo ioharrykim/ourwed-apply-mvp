@@ -11,13 +11,33 @@
   --color-ourwed-bg: #fcfbf9;
 }
 
+html {
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
+  width: 100%;
+  overflow-x: hidden;
   font-family: var(--font-sans);
   background-color: var(--color-ourwed-bg);
   color: var(--color-ourwed-main);
   letter-spacing: -0.02em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
 }
 
 /* Custom scrollbar for a cleaner look */

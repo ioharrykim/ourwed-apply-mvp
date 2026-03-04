@@ -278,17 +278,17 @@ export default function App() {
   };
 
   const inputClasses =
-    "w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[15px] focus:outline-none focus:border-ourwed-main focus:ring-1 focus:ring-ourwed-main transition-all placeholder-gray-400";
+    "w-full min-w-0 bg-white border border-gray-200 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-ourwed-main focus:ring-1 focus:ring-ourwed-main transition-all placeholder-gray-400";
   const labelClasses =
     "block text-[13px] font-medium text-gray-500 mb-2 uppercase tracking-wider";
   const RequiredMark = () => <span className="text-red-500 ml-1">*</span>;
   const sectionClasses =
-    "bg-white rounded-3xl p-6 sm:p-8 mb-6 shadow-sm border border-gray-100";
+    "bg-white rounded-3xl p-5 sm:p-8 mb-6 shadow-sm border border-gray-100";
   const sectionTitleClasses =
     "text-lg font-semibold text-ourwed-main mb-6 flex items-center";
 
   return (
-    <div className="min-h-screen pb-32">
+    <div className="min-h-screen overflow-x-hidden pb-44 sm:pb-40">
       {/* Header */}
       <header className="pt-16 pb-12 px-6 text-center">
         <div className="inline-flex items-center justify-center mb-4">
@@ -687,17 +687,17 @@ export default function App() {
               <div className="pt-4 border-t border-gray-100">
                 <label className={labelClasses}>계좌 및 연락처 안내</label>
                 <div className="space-y-3">
-                  {accounts.map((acc, index) => (
+                  {accounts.map((acc) => (
                     <div
                       key={acc.id}
-                      className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-gray-50 p-3 rounded-2xl border border-gray-100"
+                      className="grid grid-cols-1 gap-2 bg-gray-50 p-3 rounded-2xl border border-gray-100 md:grid-cols-12 md:items-start"
                     >
                       <select
                         value={acc.bank}
                         onChange={(e) =>
                           handleAccountChange(acc.id, "bank", e.target.value)
                         }
-                        className="w-full sm:w-[20%] bg-white border border-gray-200 rounded-xl px-3 py-2 text-[14px] focus:outline-none focus:border-ourwed-main"
+                        className="w-full min-w-0 bg-white border border-gray-200 rounded-xl px-3 py-2 text-base focus:outline-none focus:border-ourwed-main md:col-span-3"
                       >
                         <option value="">은행 선택</option>
                         <option value="국민">국민</option>
@@ -710,7 +710,7 @@ export default function App() {
                         <option value="토스뱅크">토스뱅크</option>
                         <option value="기타">기타</option>
                       </select>
-                      <div className="w-full sm:w-[30%] flex flex-col gap-2">
+                      <div className="w-full min-w-0 flex flex-col gap-2 md:col-span-4">
                         <select
                           value={acc.relation}
                           onChange={(e) =>
@@ -720,7 +720,7 @@ export default function App() {
                               e.target.value,
                             )
                           }
-                          className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-[14px] focus:outline-none focus:border-ourwed-main"
+                          className="w-full min-w-0 bg-white border border-gray-200 rounded-xl px-3 py-2 text-base focus:outline-none focus:border-ourwed-main"
                         >
                           <option value="">대상 선택</option>
                           <option value="신랑">신랑</option>
@@ -743,7 +743,7 @@ export default function App() {
                               )
                             }
                             placeholder="직접 입력"
-                            className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-[14px] focus:outline-none focus:border-ourwed-main"
+                            className="w-full min-w-0 bg-white border border-gray-200 rounded-xl px-3 py-2 text-base focus:outline-none focus:border-ourwed-main"
                           />
                         )}
                       </div>
@@ -758,13 +758,13 @@ export default function App() {
                           )
                         }
                         placeholder="계좌번호 (- 포함)"
-                        className="w-full sm:w-[40%] bg-white border border-gray-200 rounded-xl px-3 py-2 text-[14px] focus:outline-none focus:border-ourwed-main"
+                        className="w-full min-w-0 bg-white border border-gray-200 rounded-xl px-3 py-2 text-base focus:outline-none focus:border-ourwed-main md:col-span-4"
                       />
                       {accounts.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeAccountSlot(acc.id)}
-                          className="p-2 text-gray-400 hover:text-red-500 transition-colors self-end sm:self-auto"
+                          className="p-2 text-gray-400 hover:text-red-500 transition-colors justify-self-end md:col-span-1 md:justify-self-center md:self-center"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -881,41 +881,43 @@ export default function App() {
       </main>
 
       {/* Fixed Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white to-transparent z-10">
+      <div className="fixed bottom-0 left-0 right-0 z-10 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] bg-gradient-to-t from-white via-white/95 to-transparent">
         <div className="max-w-2xl mx-auto">
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="w-full bg-ourwed-main text-white py-4 rounded-2xl font-medium text-[16px] shadow-lg hover:bg-black transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {isSubmitting ? (
-              <>
-                <svg
-                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                접수 중...
-              </>
-            ) : (
-              "주문 접수하기"
-            )}
-          </button>
+          <div className="rounded-3xl border border-gray-100 bg-white/95 p-2 shadow-lg backdrop-blur-sm">
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="w-full bg-ourwed-main text-white py-4 rounded-2xl font-medium text-[16px] shadow-lg hover:bg-black transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  접수 중...
+                </>
+              ) : (
+                "주문 접수하기"
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
