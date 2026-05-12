@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Plus, Trash2, Check, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ourwedLogo from "./assets/ourwed-logo.svg";
@@ -14,7 +14,6 @@ interface AccountSlot {
 interface Template {
   id: string;
   name: string;
-  imageUrl: string;
 }
 
 const TEMPLATES: Record<string, Template[]> = {
@@ -22,36 +21,30 @@ const TEMPLATES: Record<string, Template[]> = {
     {
       id: "pc-01",
       name: "클래식 화이트",
-      imageUrl: "https://picsum.photos/seed/postcard1/400/600?blur=2",
     },
     {
       id: "pc-02",
       name: "모던 베이지",
-      imageUrl: "https://picsum.photos/seed/postcard2/400/600?blur=2",
     },
   ],
   "2단 접지": [
     {
       id: "fold2-01",
       name: "엘레강스 크림",
-      imageUrl: "https://picsum.photos/seed/fold2-1/400/600?blur=2",
     },
     {
       id: "fold2-02",
       name: "보태니컬 그린",
-      imageUrl: "https://picsum.photos/seed/fold2-2/400/600?blur=2",
     },
   ],
   "3단 접지": [
     {
       id: "fold3-01",
       name: "프리미엄 골드",
-      imageUrl: "https://picsum.photos/seed/fold3-1/400/600?blur=2",
     },
     {
       id: "fold3-02",
       name: "로맨틱 핑크",
-      imageUrl: "https://picsum.photos/seed/fold3-2/400/600?blur=2",
     },
   ],
 };
@@ -61,9 +54,17 @@ const INITIAL_ACCOUNTS: AccountSlot[] = [
   { id: "2", bank: "", relation: "", relationCustom: "", accountNumber: "" },
 ];
 
-const DEFAULT_PARENTS_NOTATION =
+const QUANTITY_OPTIONS = ["50", "100", "200", "300", "400", "500", "기타"];
+const ENVELOPE_QTY_MODES = [
+  { value: "same", label: "청첩장과 동일" },
+  { value: "plus10", label: "청첩장 + 10매" },
+  { value: "plus20", label: "청첩장 + 20매" },
+  { value: "custom", label: "직접 입력" },
+];
+
+const PARENTS_NOTATION_PLACEHOLDER =
   "김아빠, 이엄마 의 장남 철수\n박아빠, 최엄마 의 장녀 영희";
-const DEFAULT_GREETING =
+const GREETING_PLACEHOLDER =
   "두 사람이 사랑으로 만나\n진실과 이해로써 하나를 이루려 합니다.\n이 태어남을 축복해 주시면\n더없는 기쁨으로 간직하겠습니다.";
 const PLACEHOLDER_WEBHOOK_URL =
   "https://script.google.com/macros/s/placeholder/exec";
@@ -78,26 +79,28 @@ const createInitialFormData = () => ({
   ordererContact: "",
   communicationMethod: "email",
   ordererEmail: "",
-  ordererKakao: "",
+  ordererKakaoId: "",
 
   paperType: "엽서형",
   templateId: "",
   invitationQty: "100",
   invitationQtyCustom: "",
   envelopeQty: "100",
+  envelopeQtyMode: "same",
   envelopeQtyCustom: "",
   sealingWaxQty: "100",
   sealingWaxQtyCustom: "",
 
   weddingDateTime: "",
+  desiredReceiveDate: "",
   venueName: "",
   venueAddress: "",
   groomName: "",
   brideName: "",
   coverEnglishName: "",
   coverTitleText: "",
-  parentsNotation: DEFAULT_PARENTS_NOTATION,
-  greetingText: DEFAULT_GREETING,
+  parentsNotation: "",
+  greetingText: "",
   additionalWeddingInfo: "",
 
   recipientName: "",
@@ -105,11 +108,45 @@ const createInitialFormData = () => ({
   shippingAddress: "",
 
   agreeTemplate: false,
+  agreeShipping: false,
+  agreeRevisionPolicy: false,
   agreeNotPayment: false,
 });
 
 const resolveCustomQty = (selected: string, custom: string) =>
   selected === "기타" ? custom.trim() : selected;
+
+const getNumericInvitationQty = (selected: string, custom: string) => {
+  const source = selected === "기타" ? custom : selected;
+  const parsed = Number.parseInt(source.trim(), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
+const calculateEnvelopeQty = (
+  mode: string,
+  invitationQty: string,
+  invitationQtyCustom: string,
+  envelopeQtyCustom: string,
+) => {
+  if (mode === "custom") {
+    return envelopeQtyCustom.trim();
+  }
+
+  const baseQty = getNumericInvitationQty(invitationQty, invitationQtyCustom);
+  if (!baseQty) {
+    return "";
+  }
+
+  if (mode === "plus10") {
+    return String(baseQty + 10);
+  }
+
+  if (mode === "plus20") {
+    return String(baseQty + 20);
+  }
+
+  return String(baseQty);
+};
 
 export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,8 +154,35 @@ export default function App() {
   const [alertMessage, setAlertMessage] = useState("");
 
   const [formData, setFormData] = useState(createInitialFormData);
+  const [isRecipientSameAsOrderer, setIsRecipientSameAsOrderer] =
+    useState(false);
 
   const [accounts, setAccounts] = useState<AccountSlot[]>(INITIAL_ACCOUNTS);
+
+  useEffect(() => {
+    if (!isRecipientSameAsOrderer) {
+      return;
+    }
+
+    setFormData((prev) => {
+      if (
+        prev.recipientName === prev.ordererName &&
+        prev.recipientContact === prev.ordererContact
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        recipientName: prev.ordererName,
+        recipientContact: prev.ordererContact,
+      };
+    });
+  }, [
+    isRecipientSameAsOrderer,
+    formData.ordererName,
+    formData.ordererContact,
+  ]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -132,9 +196,30 @@ export default function App() {
         ...prev,
         [name]: type === "checkbox" ? checked : value,
       };
+
+      if (name === "communicationMethod") {
+        newData.ordererEmail = "";
+        newData.ordererKakaoId = "";
+      }
+
       if (name === "paperType") {
         newData.templateId = "";
       }
+
+      if (
+        name === "invitationQty" ||
+        name === "invitationQtyCustom" ||
+        name === "envelopeQtyMode" ||
+        name === "envelopeQtyCustom"
+      ) {
+        newData.envelopeQty = calculateEnvelopeQty(
+          newData.envelopeQtyMode,
+          newData.invitationQty,
+          newData.invitationQtyCustom,
+          newData.envelopeQtyCustom,
+        );
+      }
+
       return newData;
     });
   };
@@ -171,10 +256,12 @@ export default function App() {
     if (!formData.ordererContact) return "주문자 연락처를 입력해 주세요.";
     if (formData.communicationMethod === "email" && !formData.ordererEmail)
       return "이메일을 입력해 주세요.";
-    if (formData.communicationMethod === "kakao" && !formData.ordererKakao)
+    if (formData.communicationMethod === "kakao" && !formData.ordererKakaoId)
       return "카카오톡 ID를 입력해 주세요.";
     if (!formData.templateId) return "디자인 템플릿을 선택해 주세요.";
     if (!formData.weddingDateTime) return "예식 일시를 선택해 주세요.";
+    if (!formData.desiredReceiveDate)
+      return "청첩장 수령 희망일을 입력해 주세요.";
     if (!formData.venueName) return "예식장 명을 입력해 주세요.";
     if (!formData.venueAddress) return "예식장 상세 주소를 입력해 주세요.";
     if (!formData.groomName) return "신랑 성함을 입력해 주세요.";
@@ -184,6 +271,9 @@ export default function App() {
     if (!formData.shippingAddress) return "배송지 주소를 입력해 주세요.";
     if (!formData.agreeTemplate)
       return "템플릿 기반 제작 동의에 체크해 주세요.";
+    if (!formData.agreeShipping) return "배송 정책 동의에 체크해 주세요.";
+    if (!formData.agreeRevisionPolicy)
+      return "수정/환불 정책 동의에 체크해 주세요.";
     if (!formData.agreeNotPayment) return "접수 단계 확인에 체크해 주세요.";
     return null;
   };
@@ -213,8 +303,16 @@ export default function App() {
       return;
     }
 
-    if (formData.envelopeQty === "기타" && !formData.envelopeQtyCustom.trim()) {
+    if (
+      formData.envelopeQtyMode === "custom" &&
+      !formData.envelopeQtyCustom.trim()
+    ) {
       setAlertMessage("봉투 수량(직접입력)을 입력해 주세요.");
+      return;
+    }
+
+    if (!formData.envelopeQty.trim()) {
+      setAlertMessage("봉투 수량 계산을 위해 청첩장 수량을 입력해 주세요.");
       return;
     }
 
@@ -239,10 +337,7 @@ export default function App() {
         formData.invitationQty,
         formData.invitationQtyCustom,
       ),
-      envelopeQtyFinal: resolveCustomQty(
-        formData.envelopeQty,
-        formData.envelopeQtyCustom,
-      ),
+      envelopeQtyFinal: formData.envelopeQty,
       sealingWaxQtyFinal: resolveCustomQty(
         formData.sealingWaxQty,
         formData.sealingWaxQtyCustom,
@@ -266,6 +361,7 @@ export default function App() {
 
       // Reset form
       setFormData(createInitialFormData());
+      setIsRecipientSameAsOrderer(false);
       setAccounts(INITIAL_ACCOUNTS);
     } catch (err) {
       console.error(err);
@@ -279,6 +375,8 @@ export default function App() {
 
   const inputClasses =
     "w-full min-w-0 bg-white border border-gray-200 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-ourwed-main focus:ring-1 focus:ring-ourwed-main transition-all placeholder-gray-400";
+  const readOnlyInputClasses =
+    "w-full min-w-0 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-base text-gray-500 focus:outline-none focus:border-ourwed-main focus:ring-1 focus:ring-ourwed-main transition-all placeholder-gray-400";
   const labelClasses =
     "block text-[13px] font-medium text-gray-500 mb-2 uppercase tracking-wider";
   const RequiredMark = () => <span className="text-red-500 ml-1">*</span>;
@@ -286,6 +384,11 @@ export default function App() {
     "bg-white rounded-3xl p-5 sm:p-8 mb-6 shadow-sm border border-gray-100";
   const sectionTitleClasses =
     "text-lg font-semibold text-ourwed-main mb-6 flex items-center";
+  const allRequiredAgreementsChecked =
+    formData.agreeTemplate &&
+    formData.agreeShipping &&
+    formData.agreeRevisionPolicy &&
+    formData.agreeNotPayment;
 
   return (
     <div className="min-h-screen overflow-x-hidden pb-44 sm:pb-40">
@@ -369,11 +472,11 @@ export default function App() {
               ) : (
                 <input
                   type="text"
-                  name="ordererKakao"
-                  value={formData.ordererKakao}
+                  name="ordererKakaoId"
+                  value={formData.ordererKakaoId}
                   onChange={handleInputChange}
                   className={inputClasses}
-                  placeholder="카카오톡 ID"
+                  placeholder="카카오톡 ID 또는 카카오채널 채팅에서 사용하시는 닉네임"
                 />
               )}
             </div>
@@ -432,12 +535,9 @@ export default function App() {
                     }`}
                   >
                     <div className="aspect-[2/3] w-full bg-gray-100 relative">
-                      <img
-                        src={template.imageUrl}
-                        alt={template.name}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover"
-                      />
+                      <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
+                        준비 중
+                      </div>
                       {formData.templateId === template.id && (
                         <div className="absolute inset-0 bg-ourwed-main/10 flex items-center justify-center">
                           <div className="bg-ourwed-main text-white rounded-full p-1.5 shadow-sm">
@@ -467,7 +567,7 @@ export default function App() {
                   onChange={handleInputChange}
                   className={inputClasses}
                 >
-                  {["100", "200", "300", "400", "500", "기타"].map((opt) => (
+                  {QUANTITY_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt === "기타" ? "기타 (직접입력)" : `${opt}매`}
                     </option>
@@ -487,19 +587,25 @@ export default function App() {
               </div>
               <div>
                 <label className={labelClasses}>봉투 수량</label>
-                <select
-                  name="envelopeQty"
-                  value={formData.envelopeQty}
-                  onChange={handleInputChange}
-                  className={inputClasses}
-                >
-                  {["100", "200", "300", "400", "500", "기타"].map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt === "기타" ? "기타 (직접입력)" : `${opt}매`}
-                    </option>
+                <div className="grid grid-cols-2 gap-2">
+                  {ENVELOPE_QTY_MODES.map((mode) => (
+                    <label
+                      key={mode.value}
+                      className={`cursor-pointer border rounded-2xl py-3 px-3 text-center text-[14px] transition-all ${formData.envelopeQtyMode === mode.value ? "border-ourwed-main bg-ourwed-main text-white" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}
+                    >
+                      <input
+                        type="radio"
+                        name="envelopeQtyMode"
+                        value={mode.value}
+                        checked={formData.envelopeQtyMode === mode.value}
+                        onChange={handleInputChange}
+                        className="hidden"
+                      />
+                      {mode.label}
+                    </label>
                   ))}
-                </select>
-                {formData.envelopeQty === "기타" && (
+                </div>
+                {formData.envelopeQtyMode === "custom" && (
                   <input
                     type="number"
                     name="envelopeQtyCustom"
@@ -510,6 +616,10 @@ export default function App() {
                     step="50"
                   />
                 )}
+                <p className="text-[12px] text-gray-400 mt-2">
+                  최종 봉투 수량:{" "}
+                  {formData.envelopeQty ? `${formData.envelopeQty}매` : "-"}
+                </p>
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClasses}>실링왁스 스티커</label>
@@ -519,7 +629,7 @@ export default function App() {
                   onChange={handleInputChange}
                   className={inputClasses}
                 >
-                  {["선택 안함", "100", "200", "300", "400", "500", "기타"].map(
+                  {["선택 안함", ...QUANTITY_OPTIONS].map(
                     (opt) => (
                       <option key={opt} value={opt}>
                         {opt === "기타"
@@ -567,6 +677,22 @@ export default function App() {
                 onChange={handleInputChange}
                 className={inputClasses}
               />
+            </div>
+
+            <div>
+              <label className={labelClasses}>
+                청첩장 수령 희망일 <RequiredMark />
+              </label>
+              <input
+                type="date"
+                name="desiredReceiveDate"
+                value={formData.desiredReceiveDate}
+                onChange={handleInputChange}
+                className={inputClasses}
+              />
+              <p className="text-[12px] text-gray-400 mt-1">
+                예식일 최소 3주 전을 권장드립니다
+              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -659,6 +785,7 @@ export default function App() {
                 value={formData.parentsNotation}
                 onChange={handleInputChange}
                 className={`${inputClasses} min-h-[80px] resize-none leading-relaxed`}
+                placeholder={PARENTS_NOTATION_PLACEHOLDER}
               />
             </div>
 
@@ -669,6 +796,7 @@ export default function App() {
                 value={formData.greetingText}
                 onChange={handleInputChange}
                 className={`${inputClasses} min-h-[120px] resize-none leading-relaxed`}
+                placeholder={GREETING_PLACEHOLDER}
               />
             </div>
 
@@ -793,6 +921,25 @@ export default function App() {
             배송 정보
           </h2>
           <div className="space-y-5">
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <div className="relative flex items-center justify-center mt-0.5">
+                <input
+                  type="checkbox"
+                  checked={isRecipientSameAsOrderer}
+                  onChange={(e) =>
+                    setIsRecipientSameAsOrderer(e.target.checked)
+                  }
+                  className="peer appearance-none w-5 h-5 border border-gray-300 rounded-md checked:bg-ourwed-main checked:border-ourwed-main transition-colors"
+                />
+                <Check
+                  size={14}
+                  className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none"
+                />
+              </div>
+              <span className="text-[14px] text-gray-600 group-hover:text-ourwed-main transition-colors">
+                주문자 정보와 동일합니다
+              </span>
+            </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className={labelClasses}>
@@ -803,7 +950,12 @@ export default function App() {
                   name="recipientName"
                   value={formData.recipientName}
                   onChange={handleInputChange}
-                  className={inputClasses}
+                  readOnly={isRecipientSameAsOrderer}
+                  className={
+                    isRecipientSameAsOrderer
+                      ? readOnlyInputClasses
+                      : inputClasses
+                  }
                   placeholder="홍길동"
                 />
               </div>
@@ -816,7 +968,12 @@ export default function App() {
                   name="recipientContact"
                   value={formData.recipientContact}
                   onChange={handleInputChange}
-                  className={inputClasses}
+                  readOnly={isRecipientSameAsOrderer}
+                  className={
+                    isRecipientSameAsOrderer
+                      ? readOnlyInputClasses
+                      : inputClasses
+                  }
                   placeholder="01012345678"
                 />
               </div>
@@ -861,6 +1018,46 @@ export default function App() {
             <div className="relative flex items-center justify-center mt-0.5">
               <input
                 type="checkbox"
+                name="agreeShipping"
+                checked={formData.agreeShipping}
+                onChange={handleInputChange}
+                className="peer appearance-none w-5 h-5 border border-gray-300 rounded-md checked:bg-ourwed-main checked:border-ourwed-main transition-colors"
+              />
+              <Check
+                size={14}
+                className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none"
+              />
+            </div>
+            <span className="text-[14px] text-gray-600 group-hover:text-ourwed-main transition-colors">
+              [필수] ourwed는 인쇄 손상 방지를 위해 청첩장을 펼친 상태로
+              배송하며, 봉투 삽입과 접지는 받으시는 분께서 직접 진행하시는
+              점에 동의합니다.
+            </span>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <div className="relative flex items-center justify-center mt-0.5">
+              <input
+                type="checkbox"
+                name="agreeRevisionPolicy"
+                checked={formData.agreeRevisionPolicy}
+                onChange={handleInputChange}
+                className="peer appearance-none w-5 h-5 border border-gray-300 rounded-md checked:bg-ourwed-main checked:border-ourwed-main transition-colors"
+              />
+              <Check
+                size={14}
+                className="absolute text-white opacity-0 peer-checked:opacity-100 pointer-events-none"
+              />
+            </div>
+            <span className="text-[14px] text-gray-600 group-hover:text-ourwed-main transition-colors">
+              [필수] 시안 수정은 1회까지 무료이며, 2회차부터는 유료로
+              진행됩니다. 시안 확정 후에는 수정 및 환불이 불가함을
+              확인했습니다.
+            </span>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <div className="relative flex items-center justify-center mt-0.5">
+              <input
+                type="checkbox"
                 name="agreeNotPayment"
                 checked={formData.agreeNotPayment}
                 onChange={handleInputChange}
@@ -878,6 +1075,10 @@ export default function App() {
             </span>
           </label>
         </section>
+        <p className="text-center text-[12px] text-gray-500 mb-2">
+          제출 후 영업일 기준 1일 이내에 입력하신 연락처로 견적 및 입금
+          안내를 보내드립니다.
+        </p>
       </main>
 
       {/* Fixed Bottom CTA */}
@@ -886,7 +1087,7 @@ export default function App() {
           <div className="rounded-3xl border border-gray-100 bg-white/95 p-2 shadow-lg backdrop-blur-sm">
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !allRequiredAgreementsChecked}
               className="w-full bg-ourwed-main text-white py-4 rounded-2xl font-medium text-[16px] shadow-lg hover:bg-black transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isSubmitting ? (

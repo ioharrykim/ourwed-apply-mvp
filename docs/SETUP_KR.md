@@ -18,14 +18,16 @@ const HEADERS = [
   "ordererContact",
   "communicationMethod",
   "ordererEmail",
-  "ordererKakao",
+  "ordererKakaoId",
   "paperType",
   "templateId",
   "templateName",
   "invitationQty",
   "envelopeQty",
+  "envelopeQtyMode",
   "sealingWaxQty",
   "weddingDateTime",
+  "desiredReceiveDate",
   "venueName",
   "venueAddress",
   "groomName",
@@ -40,6 +42,8 @@ const HEADERS = [
   "recipientContact",
   "shippingAddress",
   "agreeTemplate",
+  "agreeShipping",
+  "agreeRevisionPolicy",
   "agreeNotPayment",
   "rawJson",
 ];
@@ -58,14 +62,16 @@ function doPost(e) {
       payload.ordererContact || "",
       payload.communicationMethod || "",
       payload.ordererEmail || "",
-      payload.ordererKakao || "",
+      payload.ordererKakaoId || "",
       payload.paperType || "",
       payload.templateId || "",
       payload.templateName || "",
       payload.invitationQtyFinal || payload.invitationQty || "",
       payload.envelopeQtyFinal || payload.envelopeQty || "",
+      payload.envelopeQtyMode || "",
       payload.sealingWaxQtyFinal || payload.sealingWaxQty || "",
       payload.weddingDateTime || "",
+      payload.desiredReceiveDate || "",
       payload.venueName || "",
       payload.venueAddress || "",
       payload.groomName || "",
@@ -80,6 +86,8 @@ function doPost(e) {
       payload.recipientContact || "",
       payload.shippingAddress || "",
       String(Boolean(payload.agreeTemplate)),
+      String(Boolean(payload.agreeShipping)),
+      String(Boolean(payload.agreeRevisionPolicy)),
       String(Boolean(payload.agreeNotPayment)),
       JSON.stringify(payload),
     ];
@@ -169,6 +177,7 @@ AI Studio에서 바로 배포할 경우에도 동일한 값이 빌드 시점에 
 1. 폼에서 테스트 1건 제출.
 2. 시트 `responses` 탭에 새 행이 추가되는지 확인.
 3. 배포 이후 Apps Script 코드를 수정했다면 `배포 > 관리`에서 최신 버전으로 재배포합니다.
+4. 기존 시트를 계속 쓰는 경우 헤더에 `desiredReceiveDate`, `agreeShipping`, `agreeRevisionPolicy`, `ordererKakaoId`, `envelopeQtyMode` 컬럼을 추가했는지 확인합니다.
 
 ## 2) 도메인 `apply.ourwed.in` 연결
 
@@ -184,4 +193,3 @@ AI Studio에서 바로 배포할 경우에도 동일한 값이 빌드 시점에 
 
 ### 운영 권장
 Cloud Run 공식 문서 기준으로 Domain Mapping 기능은 제한/프리뷰 성격 안내가 있어, 실서비스에서는 `Global External Application Load Balancer` 경로가 더 권장됩니다.
-
