@@ -1,31 +1,48 @@
-# ourwed apply mvp
+# ourwed apply MVP
 
-ourwed 지류 청첩장 주문 접수 웹앱입니다.  
-폼 제출 시 Google Apps Script 웹앱으로 데이터를 전송해 Google 스프레드시트에 적재합니다.
+ourwed 지류 청첩장 주문 접수 웹앱입니다.
+
+- 신청 폼: Walla처럼 단계별로 넘기며 작성
+- 데이터 저장: Supabase `applications`, `application_accounts`
+- 관리자 대시보드: `/admin`
+- 관리자 로그인: Supabase Auth 이메일 매직링크
 
 ## 로컬 실행
 
 사전 요구사항: Node.js 20+
 
-1. 의존성 설치
-
 ```bash
 npm install
 ```
 
-2. 환경변수 설정 (`.env.local`)
+`.env.local`:
 
 ```bash
-VITE_GOOGLE_SCRIPT_WEB_APP_URL="https://script.google.com/macros/s/발급받은ID/exec"
+VITE_SUPABASE_URL="https://your-project.supabase.co"
+VITE_SUPABASE_ANON_KEY="your-supabase-anon-key"
 ```
 
-3. 개발 서버 실행
+개발 서버:
 
 ```bash
 npm run dev
 ```
 
-## 운영 설정 문서
+## Supabase 설정
 
-- Google Sheets 연동 + Apps Script 배포 + `apply.ourwed.in` 도메인 연결:
-  [docs/SETUP_KR.md](./docs/SETUP_KR.md)
+1. Supabase Dashboard > SQL Editor에서 [docs/supabase-schema.sql](./docs/supabase-schema.sql)을 실행합니다.
+2. 실행 전 SQL 하단의 `OWNER_EMAIL@example.com`, `PARTNER_EMAIL@example.com`를 실제 관리자 이메일 2개로 바꿉니다.
+3. Supabase Dashboard > Authentication > URL Configuration에서 아래 Redirect URL을 추가합니다.
+
+```text
+http://localhost:3000/admin
+https://apply.ourwed.in/admin
+```
+
+4. 배포 환경에도 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`를 등록합니다.
+
+service role key는 브라우저 앱에 넣지 않습니다. 서버 API나 마이그레이션 자동화가 필요해질 때만 서버 전용 환경변수로 사용합니다.
+
+## 운영 문서
+
+- Supabase DB/Auth/RLS 설정: [docs/SETUP_KR.md](./docs/SETUP_KR.md)

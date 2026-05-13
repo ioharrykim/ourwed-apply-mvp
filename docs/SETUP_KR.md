@@ -1,195 +1,76 @@
-# ourwed 신청 폼 운영 설정 (Google Sheets + Domain)
+# ourwed 신청 폼 운영 설정 (Supabase + Admin Dashboard)
 
-## 1) 폼 제출 데이터를 Google 스프레드시트로 받기
+## 1) Supabase DB 만들기
 
-### A. 스프레드시트 준비
-1. 구글 스프레드시트 1개를 새로 생성합니다. (예: `ourwed_apply_responses`)
-2. 상단 메뉴 `확장 프로그램 > Apps Script`를 엽니다.
+Supabase Dashboard > SQL Editor에서 `docs/supabase-schema.sql` 내용을 실행합니다.
 
-### B. Apps Script 코드 붙여넣기
-기존 코드를 지우고 아래 코드 전체를 넣으세요.
+실행 전에 파일 하단의 초기 관리자 이메일을 실제 이메일로 교체해야 합니다.
 
-```javascript
-const SHEET_NAME = "responses";
-
-const HEADERS = [
-  "submittedAt",
-  "ordererName",
-  "ordererContact",
-  "communicationMethod",
-  "ordererEmail",
-  "ordererKakaoId",
-  "paperType",
-  "templateId",
-  "templateName",
-  "invitationQty",
-  "envelopeQty",
-  "envelopeQtyMode",
-  "sealingWaxQty",
-  "weddingDateTime",
-  "desiredReceiveDate",
-  "venueName",
-  "venueAddress",
-  "groomName",
-  "brideName",
-  "coverEnglishName",
-  "coverTitleText",
-  "parentsNotation",
-  "greetingText",
-  "additionalWeddingInfo",
-  "accounts",
-  "recipientName",
-  "recipientContact",
-  "shippingAddress",
-  "agreeTemplate",
-  "agreeShipping",
-  "agreeRevisionPolicy",
-  "agreeNotPayment",
-  "rawJson",
-];
-
-function doPost(e) {
-  try {
-    const payload = parsePayload_(e);
-    const sheet = getOrCreateSheet_(SHEET_NAME);
-    ensureHeaderRow_(sheet, HEADERS);
-
-    const accountsText = formatAccounts_(payload.accounts);
-
-    const row = [
-      payload.submittedAt || new Date().toISOString(),
-      payload.ordererName || "",
-      payload.ordererContact || "",
-      payload.communicationMethod || "",
-      payload.ordererEmail || "",
-      payload.ordererKakaoId || "",
-      payload.paperType || "",
-      payload.templateId || "",
-      payload.templateName || "",
-      payload.invitationQtyFinal || payload.invitationQty || "",
-      payload.envelopeQtyFinal || payload.envelopeQty || "",
-      payload.envelopeQtyMode || "",
-      payload.sealingWaxQtyFinal || payload.sealingWaxQty || "",
-      payload.weddingDateTime || "",
-      payload.desiredReceiveDate || "",
-      payload.venueName || "",
-      payload.venueAddress || "",
-      payload.groomName || "",
-      payload.brideName || "",
-      payload.coverEnglishName || "",
-      payload.coverTitleText || "",
-      payload.parentsNotation || "",
-      payload.greetingText || "",
-      payload.additionalWeddingInfo || "",
-      accountsText,
-      payload.recipientName || "",
-      payload.recipientContact || "",
-      payload.shippingAddress || "",
-      String(Boolean(payload.agreeTemplate)),
-      String(Boolean(payload.agreeShipping)),
-      String(Boolean(payload.agreeRevisionPolicy)),
-      String(Boolean(payload.agreeNotPayment)),
-      JSON.stringify(payload),
-    ];
-
-    sheet.appendRow(row);
-
-    return jsonResponse_({ ok: true });
-  } catch (error) {
-    return jsonResponse_({
-      ok: false,
-      error: String(error && error.message ? error.message : error),
-    });
-  }
-}
-
-function parsePayload_(e) {
-  if (!e || !e.postData || !e.postData.contents) {
-    throw new Error("Empty request body");
-  }
-  return JSON.parse(e.postData.contents);
-}
-
-function formatAccounts_(accounts) {
-  if (!Array.isArray(accounts)) {
-    return "";
-  }
-  return accounts
-    .filter((item) => item && (item.bank || item.relation || item.accountNumber))
-    .map((item, index) => {
-      const relation =
-        item.relation === "기타"
-          ? item.relationCustom || "기타"
-          : item.relation || "";
-      return [
-        index + 1,
-        item.bank || "",
-        relation,
-        item.accountNumber || "",
-      ].join(" | ");
-    })
-    .join("\n");
-}
-
-function getOrCreateSheet_(sheetName) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(sheetName);
-  if (!sheet) {
-    sheet = ss.insertSheet(sheetName);
-  }
-  return sheet;
-}
-
-function ensureHeaderRow_(sheet, headers) {
-  const headerRange = sheet.getRange(1, 1, 1, headers.length);
-  const current = headerRange.getValues()[0];
-  const hasHeader = current.some((value) => String(value).trim() !== "");
-  if (!hasHeader) {
-    headerRange.setValues([headers]);
-    sheet.setFrozenRows(1);
-  }
-}
-
-function jsonResponse_(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(
-    ContentService.MimeType.JSON
-  );
-}
+```sql
+insert into public.admin_users (email, display_name)
+values
+  ('OWNER_EMAIL@example.com', 'owner'),
+  ('PARTNER_EMAIL@example.com', 'partner')
+on conflict (email) do nothing;
 ```
 
-### C. 웹앱 배포
-1. Apps Script에서 `배포 > 새 배포`.
-2. 유형 `웹 앱`.
-3. `Execute as`: **Me**
-4. `Who has access`: **Anyone**
-5. 배포 후 발급되는 `.../exec` URL을 복사합니다.
+이 SQL은 다음을 만듭니다.
 
-### D. 프론트 환경변수 연결
-프로젝트 루트에 `.env.local` 생성 후 다음 설정:
+- `applications`: 신청 기본 정보, 상품/예식/배송/동의 데이터
+- `application_accounts`: 신청별 계좌 정보
+- `application_events`: 상태 변경 및 관리자 메모 히스토리
+- `admin_users`: 관리자 접근 허용 이메일
+
+RLS 정책은 공개 신청 폼에서는 insert만 허용하고, 조회/상태 변경/초대는 `admin_users`에 등록된 로그인 사용자만 가능하도록 구성되어 있습니다.
+
+## 2) 환경변수 설정
+
+로컬 `.env.local`:
 
 ```bash
-VITE_GOOGLE_SCRIPT_WEB_APP_URL="https://script.google.com/macros/s/발급받은ID/exec"
+VITE_SUPABASE_URL="https://kofquwegpjivzdpmpwhd.supabase.co"
+VITE_SUPABASE_ANON_KEY="Supabase anon key"
 ```
 
-AI Studio에서 바로 배포할 경우에도 동일한 값이 빌드 시점에 반영되도록 설정해 주세요.
+배포 환경에도 같은 두 값을 등록합니다.
 
-### E. 동작 확인
-1. 폼에서 테스트 1건 제출.
-2. 시트 `responses` 탭에 새 행이 추가되는지 확인.
-3. 배포 이후 Apps Script 코드를 수정했다면 `배포 > 관리`에서 최신 버전으로 재배포합니다.
-4. 기존 시트를 계속 쓰는 경우 헤더에 `desiredReceiveDate`, `agreeShipping`, `agreeRevisionPolicy`, `ordererKakaoId`, `envelopeQtyMode` 컬럼을 추가했는지 확인합니다.
+중요: `service_role` key는 프론트엔드 환경변수에 넣지 않습니다. 현재 앱은 RLS 기반 클라이언트 insert/read 구조라 service role key가 필요하지 않습니다.
 
-## 2) 도메인 `apply.ourwed.in` 연결
+## 3) Supabase Auth 설정
 
-이 앱은 AI Studio에서 Cloud Run으로 배포되므로, 도메인 연결은 Cloud Run 쪽에서 진행합니다.
+Supabase Dashboard > Authentication > URL Configuration:
 
-### 빠른 연결(Cloud Run Domain Mapping)
-1. GCP 콘솔 `Cloud Run > Domain mappings` 이동.
-2. `Add mapping` 클릭.
-3. 서비스 선택 후 도메인 `apply.ourwed.in` 입력.
-4. `ourwed.in` 소유권을 Search Console에서 검증.
-5. 화면에 나온 DNS 레코드를 도메인 DNS에 추가.
-6. SSL 발급 완료까지 대기 후 `https://apply.ourwed.in` 접속 확인.
+- Site URL: 운영 도메인. 예: `https://apply.ourwed.in`
+- Redirect URLs:
+  - `http://localhost:3000/admin`
+  - `https://apply.ourwed.in/admin`
 
-### 운영 권장
-Cloud Run 공식 문서 기준으로 Domain Mapping 기능은 제한/프리뷰 성격 안내가 있어, 실서비스에서는 `Global External Application Load Balancer` 경로가 더 권장됩니다.
+관리자는 `/admin`에서 이메일을 입력하고 매직링크로 로그인합니다.
+
+## 4) 관리자 초대
+
+첫 관리자 2명은 SQL 실행 시 `admin_users`에 넣습니다.
+
+이후에는 `/admin` 접속 후 왼쪽 하단의 `관리자 초대` 입력칸에 이메일을 추가하면 됩니다. 추가된 이메일 사용자는 같은 `/admin` 화면에서 매직링크 로그인이 가능합니다.
+
+## 5) 상태값
+
+대시보드에서 관리하는 상태값은 다음과 같습니다.
+
+- 신규 접수: `new`
+- 견적 안내: `quoted`
+- 입금 확인: `paid`
+- 시안 작업: `drafting`
+- 시안 확정: `confirmed`
+- 인쇄 진행: `printing`
+- 배송 완료: `shipped`
+- 완료: `done`
+- 취소: `cancelled`
+
+상태 변경 시 `application_events`에 변경 전/후 상태와 메모가 저장됩니다.
+
+## 6) 배포 메모
+
+SPA에서 `/admin` 새로고침이 동작하도록 `vercel.json`에 모든 경로를 `index.html`로 돌리는 rewrite를 추가했습니다.
+
+Vercel이 아닌 정적 호스팅/Cloud Run으로 배포한다면 동일하게 history fallback 설정이 필요합니다.
