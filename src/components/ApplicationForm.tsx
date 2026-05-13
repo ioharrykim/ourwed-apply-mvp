@@ -186,8 +186,10 @@ export default function ApplicationForm() {
       {
         id: crypto.randomUUID(),
         bank: "",
+        bankCustom: "",
         relation: "",
         relationCustom: "",
+        accountHolder: "",
         accountNumber: "",
       },
     ]);
@@ -816,12 +818,13 @@ export default function ApplicationForm() {
               key={acc.id}
               className="grid grid-cols-1 gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3 md:grid-cols-12 md:items-start"
             >
+              <div className="flex w-full min-w-0 flex-col gap-2 md:col-span-3">
                 <select
                   value={acc.bank}
                   onChange={(e) =>
                     handleAccountChange(acc.id, "bank", e.target.value)
                   }
-                  className="w-full min-w-0 rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:border-ourwed-main focus:outline-none md:col-span-3"
+                  className="w-full min-w-0 rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:border-ourwed-main focus:outline-none"
                 >
                   <option value="">은행 선택</option>
                   <option value="국민">국민</option>
@@ -834,7 +837,19 @@ export default function ApplicationForm() {
                   <option value="토스뱅크">토스뱅크</option>
                   <option value="기타">기타</option>
                 </select>
-                <div className="flex w-full min-w-0 flex-col gap-2 md:col-span-4">
+                {acc.bank === "기타" && (
+                  <input
+                    type="text"
+                    value={acc.bankCustom || ""}
+                    onChange={(e) =>
+                      handleAccountChange(acc.id, "bankCustom", e.target.value)
+                    }
+                    placeholder="은행명 직접 입력"
+                    className="w-full min-w-0 rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:border-ourwed-main focus:outline-none"
+                  />
+                )}
+              </div>
+                <div className="flex w-full min-w-0 flex-col gap-2 md:col-span-3">
                   <select
                     value={acc.relation}
                     onChange={(e) =>
@@ -869,12 +884,21 @@ export default function ApplicationForm() {
                 </div>
                 <input
                   type="text"
+                  value={acc.accountHolder || ""}
+                  onChange={(e) =>
+                    handleAccountChange(acc.id, "accountHolder", e.target.value)
+                  }
+                  placeholder="예금주"
+                  className="w-full min-w-0 rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:border-ourwed-main focus:outline-none md:col-span-2"
+                />
+                <input
+                  type="text"
                   value={acc.accountNumber}
                   onChange={(e) =>
                     handleAccountChange(acc.id, "accountNumber", e.target.value)
                   }
                   placeholder="계좌번호 (- 포함)"
-                  className="w-full min-w-0 rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:border-ourwed-main focus:outline-none md:col-span-4"
+                  className="w-full min-w-0 rounded-md border border-gray-200 bg-white px-3 py-2 text-base focus:border-ourwed-main focus:outline-none md:col-span-3"
                 />
                 {accounts.length > 1 && (
                   <button

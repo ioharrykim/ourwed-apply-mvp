@@ -130,5 +130,10 @@ export const mapAccountInsertRows = (
     }))
     .filter(
       (account) =>
-        account.bank || account.relation || account.relation_custom || account.account_number,
+        account.bank ||
+        account.relation ||
+        account.relation_custom ||
+        account.account_number ||
+        accounts[account.slot_order - 1]?.bankCustom?.trim() ||
+        accounts[account.slot_order - 1]?.accountHolder?.trim(),
     );

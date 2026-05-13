@@ -45,8 +45,24 @@ export const TEMPLATES: Record<string, Template[]> = {
 };
 
 export const INITIAL_ACCOUNTS: AccountSlot[] = [
-  { id: "1", bank: "", relation: "", relationCustom: "", accountNumber: "" },
-  { id: "2", bank: "", relation: "", relationCustom: "", accountNumber: "" },
+  {
+    id: "1",
+    bank: "",
+    bankCustom: "",
+    relation: "",
+    relationCustom: "",
+    accountHolder: "",
+    accountNumber: "",
+  },
+  {
+    id: "2",
+    bank: "",
+    bankCustom: "",
+    relation: "",
+    relationCustom: "",
+    accountHolder: "",
+    accountNumber: "",
+  },
 ];
 
 export const QUANTITY_OPTIONS = ["50", "100", "200", "300", "400", "500", "기타"];

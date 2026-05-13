@@ -3,8 +3,8 @@ import type { Session } from "@supabase/supabase-js";
 import {
   Check,
   ClipboardList,
+  LogIn,
   LogOut,
-  Mail,
   RefreshCcw,
   Search,
   UserPlus,
@@ -14,6 +14,7 @@ import { STATUS_OPTIONS, getStatusLabel } from "../lib/constants";
 import { displayValue, formatDate, formatDateTime } from "../lib/format";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import type {
+  AccountSlot,
   ApplicationAccountRow,
   ApplicationEventRow,
   ApplicationRow,
@@ -69,12 +70,27 @@ const getRawText = (row: ApplicationRow, key: string) => {
   return typeof value === "string" && value.trim() ? value : null;
 };
 
+const getRawAccount = (row: ApplicationRow, slotOrder: number) => {
+  const accounts = row.raw_payload?.accounts;
+  if (!Array.isArray(accounts)) {
+    return null;
+  }
+
+  const account = accounts[slotOrder - 1];
+  if (!account || typeof account !== "object") {
+    return null;
+  }
+
+  return account as Partial<AccountSlot>;
+};
+
 export default function AdminDashboard() {
   const [session, setSession] = useState<Session | null>(null);
-  const [authEmail, setAuthEmail] = useState("");
+  const [loginId, setLoginId] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [authMessage, setAuthMessage] = useState("");
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isSendingLink, setIsSendingLink] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const [applications, setApplications] = useState<ApplicationRow[]>([]);
   const [accounts, setAccounts] = useState<ApplicationAccountRow[]>([]);
@@ -225,25 +241,23 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSendLoginLink = async (event: FormEvent) => {
+  const handlePasswordLogin = async (event: FormEvent) => {
     event.preventDefault();
     if (!supabase) return;
 
-    setIsSendingLink(true);
+    setIsLoggingIn(true);
     setAuthMessage("");
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: authEmail.trim(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/admin`,
-      },
+    const { error } = await supabase.auth.signInWithPassword({
+      email: loginId.trim(),
+      password: loginPassword,
     });
 
-    setIsSendingLink(false);
+    setIsLoggingIn(false);
     setAuthMessage(
       error
-        ? "로그인 링크 발송에 실패했습니다. 이메일 주소와 Supabase Auth 설정을 확인해 주세요."
-        : "로그인 링크를 이메일로 보냈습니다. 받은 메일에서 링크를 열어 주세요.",
+        ? "로그인에 실패했습니다. 아이디, 비밀번호, 관리자 권한 등록 여부를 확인해 주세요."
+        : "",
     );
   };
 
@@ -309,7 +323,7 @@ export default function AdminDashboard() {
 
     const email = inviteEmail.trim().toLowerCase();
     if (!email) {
-      setInviteMessage("초대할 이메일을 입력해 주세요.");
+      setInviteMessage("등록할 관리자 이메일을 입력해 주세요.");
       return;
     }
 
@@ -326,7 +340,9 @@ export default function AdminDashboard() {
     }
 
     setInviteEmail("");
-    setInviteMessage(`${email} 이메일을 관리자 목록에 추가했습니다.`);
+    setInviteMessage(
+      `${email} 이메일을 관리자 목록에 추가했습니다. Supabase Auth 사용자 생성과 비밀번호 설정도 필요합니다.`,
+    );
   };
 
   if (!isSupabaseConfigured) {
@@ -358,7 +374,7 @@ export default function AdminDashboard() {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
         <form
-          onSubmit={handleSendLoginLink}
+          onSubmit={handlePasswordLogin}
           className="w-full max-w-md rounded-lg border border-gray-100 bg-white p-6 shadow-sm"
         >
           <img src={ourwedLogo} alt="ourwed" className="mb-6 h-9 w-auto" />
@@ -366,29 +382,40 @@ export default function AdminDashboard() {
             관리자 로그인
           </h1>
           <p className="mt-2 text-[14px] leading-relaxed text-gray-500">
-            등록된 관리자 이메일로 로그인 링크를 받아 대시보드에 접속합니다.
+            등록된 관리자 계정으로 대시보드에 접속합니다.
           </p>
           <label className="mt-6 block text-[13px] font-medium uppercase text-gray-500">
-            관리자 이메일
+            아이디
           </label>
-          <div className="mt-2 flex gap-2">
-            <input
-              type="email"
-              value={authEmail}
-              onChange={(event) => setAuthEmail(event.target.value)}
-              className="min-w-0 flex-1 rounded-lg border border-gray-200 px-4 py-3 text-base focus:border-ourwed-main focus:outline-none focus:ring-1 focus:ring-ourwed-main"
-              placeholder="admin@example.com"
-              required
-            />
-            <button
-              type="submit"
-              disabled={isSendingLink}
-              className="inline-flex items-center gap-2 rounded-md bg-ourwed-main px-4 py-3 text-[14px] font-medium text-white transition-colors hover:bg-black disabled:opacity-60"
-            >
-              <Mail size={16} />
-              발송
-            </button>
-          </div>
+          <input
+            type="email"
+            value={loginId}
+            onChange={(event) => setLoginId(event.target.value)}
+            className="mt-2 w-full rounded-lg border border-gray-200 px-4 py-3 text-base focus:border-ourwed-main focus:outline-none focus:ring-1 focus:ring-ourwed-main"
+            placeholder="admin@example.com"
+            autoComplete="username"
+            required
+          />
+          <label className="mt-4 block text-[13px] font-medium uppercase text-gray-500">
+            비밀번호
+          </label>
+          <input
+            type="password"
+            value={loginPassword}
+            onChange={(event) => setLoginPassword(event.target.value)}
+            className="mt-2 w-full rounded-lg border border-gray-200 px-4 py-3 text-base focus:border-ourwed-main focus:outline-none focus:ring-1 focus:ring-ourwed-main"
+            placeholder="관리자 비밀번호"
+            autoComplete="current-password"
+            required
+          />
+          <button
+            type="submit"
+            disabled={isLoggingIn}
+            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-ourwed-main px-4 py-3 text-[15px] font-medium text-white transition-colors hover:bg-black disabled:opacity-60"
+          >
+            <LogIn size={16} />
+            {isLoggingIn ? "로그인 중..." : "로그인"}
+          </button>
           {authMessage && (
             <p className="mt-4 rounded-lg bg-gray-50 p-3 text-[13px] leading-relaxed text-gray-600">
               {authMessage}
@@ -542,7 +569,7 @@ export default function AdminDashboard() {
           >
             <div className="mb-3 flex items-center gap-2 text-ourwed-main">
               <UserPlus size={17} />
-              <h2 className="font-semibold">관리자 초대</h2>
+              <h2 className="font-semibold">관리자 권한 등록</h2>
             </div>
             <div className="flex gap-2">
               <input
@@ -550,7 +577,7 @@ export default function AdminDashboard() {
                 value={inviteEmail}
                 onChange={(event) => setInviteEmail(event.target.value)}
                 className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 text-base focus:border-ourwed-main focus:outline-none focus:ring-1 focus:ring-ourwed-main"
-                placeholder="email@example.com"
+                placeholder="admin@example.com"
               />
               <button
                 type="submit"
@@ -762,25 +789,40 @@ export default function AdminDashboard() {
                   </p>
                 ) : (
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {accounts.map((account) => (
-                      <div
-                        key={account.id}
-                        className="rounded-lg border border-gray-100 bg-white p-4"
-                      >
-                        <p className="text-[12px] uppercase text-gray-400">
-                          계좌 {account.slot_order}
-                        </p>
-                        <p className="mt-2 font-medium text-ourwed-main">
-                          {displayValue(account.bank)} ·{" "}
-                          {account.relation === "기타"
-                            ? displayValue(account.relation_custom)
-                            : displayValue(account.relation)}
-                        </p>
-                        <p className="mt-1 break-words text-[14px] text-gray-600">
-                          {displayValue(account.account_number)}
-                        </p>
-                      </div>
-                    ))}
+                    {accounts.map((account) => {
+                      const rawAccount = getRawAccount(
+                        selectedApplication,
+                        account.slot_order,
+                      );
+                      const bankName =
+                        account.bank === "기타"
+                          ? rawAccount?.bankCustom || account.bank
+                          : account.bank;
+                      const relation =
+                        account.relation === "기타"
+                          ? account.relation_custom
+                          : account.relation;
+
+                      return (
+                        <div
+                          key={account.id}
+                          className="rounded-lg border border-gray-100 bg-white p-4"
+                        >
+                          <p className="text-[12px] uppercase text-gray-400">
+                            계좌 {account.slot_order}
+                          </p>
+                          <p className="mt-2 font-medium text-ourwed-main">
+                            {displayValue(bankName)} · {displayValue(relation)}
+                          </p>
+                          <p className="mt-1 text-[14px] text-gray-600">
+                            예금주 {displayValue(rawAccount?.accountHolder)}
+                          </p>
+                          <p className="mt-1 break-words text-[14px] text-gray-600">
+                            {displayValue(account.account_number)}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

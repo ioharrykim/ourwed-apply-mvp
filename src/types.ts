@@ -1,8 +1,10 @@
 export interface AccountSlot {
   id: string;
   bank: string;
+  bankCustom?: string;
   relation: string;
   relationCustom?: string;
+  accountHolder?: string;
   accountNumber: string;
 }
 

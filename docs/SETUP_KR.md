@@ -36,22 +36,25 @@ VITE_SUPABASE_ANON_KEY="Supabase anon key"
 
 중요: `service_role` key는 프론트엔드 환경변수에 넣지 않습니다. 현재 앱은 RLS 기반 클라이언트 insert/read 구조라 service role key가 필요하지 않습니다.
 
-## 3) Supabase Auth 설정
+## 3) Supabase Auth 계정 설정
 
-Supabase Dashboard > Authentication > URL Configuration:
+관리자 대시보드는 이메일/비밀번호 방식으로 로그인합니다.
 
-- Site URL: 운영 도메인. 예: `https://apply.ourwed.in`
-- Redirect URLs:
-  - `http://localhost:3000/admin`
-  - `https://apply.ourwed.in/admin`
+Supabase Dashboard > Authentication > Users에서 아래 작업을 진행합니다.
 
-관리자는 `/admin`에서 이메일을 입력하고 매직링크로 로그인합니다.
+1. `admin_users`에 등록한 관리자 이메일과 같은 이메일로 user를 생성합니다.
+2. 비밀번호를 설정합니다.
+3. 이메일 인증이 필요한 설정이면 해당 user를 confirmed 상태로 만듭니다.
+
+이후 `/admin`에서 아이디(이메일)와 비밀번호를 입력해 로그인합니다.
 
 ## 4) 관리자 초대
 
 첫 관리자 2명은 SQL 실행 시 `admin_users`에 넣습니다.
 
-이후에는 `/admin` 접속 후 왼쪽 하단의 `관리자 초대` 입력칸에 이메일을 추가하면 됩니다. 추가된 이메일 사용자는 같은 `/admin` 화면에서 매직링크 로그인이 가능합니다.
+이후에는 `/admin` 접속 후 왼쪽 하단의 `관리자 초대` 입력칸에 이메일을 추가하면 됩니다.
+
+추가한 이메일도 Supabase Dashboard > Authentication > Users에 같은 이메일로 user를 만들고 비밀번호를 설정해야 로그인할 수 있습니다.
 
 ## 5) 상태값
 
